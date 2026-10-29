@@ -1,0 +1,111 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: traffic-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: traffic_user
+      POSTGRES_PASSWORD: ${TRAFFIC_DB_PASSWORD}
+      POSTGRES_DB: traffic_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U traffic_user -d traffic_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  airflow-db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${AIRFLOW_DB_USER}
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD}
+      POSTGRES_DB: ${AIRFLOW_DB_NAME}
+    volumes:
+      - airflow_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  airflow:
+    image: ${AIRFLOW_IMAGE_NAME}
+    restart: unless-stopped
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@airflow-db:5432/${AIRFLOW_DB_NAME}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      PYTHONPATH: /opt/airflow/dags
+      TRAFFIC_DB_USER: ${TRAFFIC_DB_USER}
+      TRAFFIC_DB_PASSWORD: ${TRAFFIC_DB_PASSWORD}
+    command: standalone
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
+      - ./data:/opt/airflow/data
+      - ./ssh:/opt/airflow/ssh:ro
+      - traffic_airflow_ssh:/home/airflow/.ssh
+      - ./k8s-auth:/opt/airflow/k8s-auth:ro
+
+  spark:
+    build:
+      context: ./spark
+      dockerfile: Dockerfile
+    image: traffic-spark-ssh:local
+    container_name: traffic-spark
+    restart: unless-stopped
+    hostname: traffic-spark
+    user: root
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPARK_LOCAL_IP: traffic-spark
+      SPARK_MASTER_HOST: traffic-spark
+    command:
+      - /bin/bash
+      - -c
+      - |
+        set -e
+        cp /opt/traffic/ssh-host-keys/ssh_host_ed25519_key /etc/ssh/
+        cp /opt/traffic/ssh-host-keys/ssh_host_ed25519_key.pub /etc/ssh/
+        cp /opt/traffic/ssh-host-keys/ssh_host_rsa_key /etc/ssh/
+        cp /opt/traffic/ssh-host-keys/ssh_host_rsa_key.pub /etc/ssh/
+        cp /opt/traffic/ssh-host-keys/ssh_host_ecdsa_key /etc/ssh/
+        cp /opt/traffic/ssh-host-keys/ssh_host_ecdsa_key.pub /etc/ssh/
+        chown root:root /etc/ssh/ssh_host_*_key*
+        chmod 600 /etc/ssh/ssh_host_*_key
+        chmod 644 /etc/ssh/ssh_host_*_key.pub
+        ssh-keygen -A
+        cp /opt/traffic/ssh/authorized_keys /home/spark/.ssh/authorized_keys
+        chown -R spark:spark /home/spark/.ssh
+        chmod 700 /home/spark/.ssh
+        chmod 600 /home/spark/.ssh/authorized_keys
+        /usr/sbin/sshd
+        runuser -u spark -- /opt/spark/sbin/start-master.sh
+        runuser -u spark -- /opt/spark/sbin/start-worker.sh spark://traffic-spark:7077
+        exec sleep infinity
+    volumes:
+      - ./spark:/opt/traffic/spark
+      - ./data:/opt/traffic/data
+      - ./sql:/opt/traffic/sql
+      - ./ssh/authorized_keys:/opt/traffic/ssh/authorized_keys:ro
+      - traffic_spark_ssh_host_keys:/opt/traffic/ssh-host-keys:ro
+      - ./spark/jars/postgresql-42.7.14.jar:/opt/spark/jars/postgresql-42.7.14.jar:ro
+
+volumes:
+  postgres_data:
+  traffic_airflow_ssh:
+    external: true
+  traffic_spark_ssh_host_keys:
+    external: true
+  airflow_db_data:

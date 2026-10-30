@@ -156,7 +156,7 @@ validate_traffic_summary
 
 ### Airflow DAG 실행 성공
 
-![Airflow DAG Success](docs/screenshots/airflow.png)
+![Airflow DAG Success](docs/screenshots/airflow.PNG)
 
 실제 DAG 실행에서 다음 두 Task가 모두 성공했습니다.
 
@@ -167,7 +167,7 @@ validate_traffic_summary
 
 ### Airflow에서 Spark 실행 상태 확인
 
-![Airflow Spark Execution Log](docs/screenshots/airflow_spark_execution_log.png)
+![Airflow Spark Execution Log](docs/screenshots/airflow_spark_execution_log.PNG)
 
 Task 로그에서 다음 실행 단계를 확인했습니다.
 
@@ -203,7 +203,7 @@ Spark 작업을 Kubernetes 환경에 제출하고 Driver·Executor를 사용하�
 
 ### Kubernetes 실행 결과
 
-![Kubernetes Spark Driver](docs/screenshots/k8s_spark_driver.png)
+![Kubernetes Spark Driver](docs/screenshots/k8s_spark_driver.PNG)
 
 실제 Kubernetes Pod 조회 결과:
 
@@ -232,7 +232,7 @@ Spark는 PostgreSQL에 적재된 교통 데이터를 다음 차원으로 집계�
 
 ### 실제 Spark 실행 결과
 
-![Spark Batch Processing](docs/screenshots/spark_batch_processing.png)
+![Spark Batch Processing](docs/screenshots/spark_batch_processing.PNG)
 
 실행 로그:
 
@@ -272,7 +272,7 @@ UPSERT committed successfully
 
 ### 6.1 전체 데이터 합계 검증
 
-![PostgreSQL Validation](docs/screenshots/postgresql_validation.png)
+![PostgreSQL Validation](docs/screenshots/postgresql_validation.PNG)
 
 검증 결과:
 
@@ -284,7 +284,7 @@ UPSERT committed successfully
 
 ### 6.2 그룹별 정합성 검증
 
-![PostgreSQL Group Validation](docs/screenshots/postgresql_group_validation.png)
+![PostgreSQL Group Validation](docs/screenshots/postgresql_group_validation.PNG)
 
 날짜·수집 유형·차량 종류를 기준으로 원천 데이터와 집계 테이블을 비교했습니다.
 
@@ -350,7 +350,7 @@ PostgreSQL의 `spark_job_execution_log` 테이블을 활용합니다.
 
 ### 실제 실행 이력
 
-![Spark Execution History](docs/screenshots/spark_execution_history.png)
+![Spark Execution History](docs/screenshots/spark_execution_history.PNG)
 
 두 개의 Spark 실행 이력이 `SUCCEEDED` 상태로 저장된 것을 확인했습니다.
 
@@ -397,7 +397,7 @@ Airflow Task 실행
 
 ### 데이터 파이프라인 운영 상태 모니터링
 
-![Pipeline Health Monitor](docs/screenshots/pipeline_health_monitor.png)
+![Pipeline Health Monitor](docs/screenshots/pipeline_health_monitor.PNG)
 
 Airflow, Spark, Kubernetes 및 데이터 적재 관련 실행 기록을 통합하여 파이프라인 운영 상태를 확인할 수 있도록 구성했습니다.
 
@@ -435,7 +435,7 @@ Airflow, Spark, Kubernetes 및 데이터 적재 관련 실행 기록을 통합�
 
 ### 교통량 이상 패턴 탐지
 
-![Traffic Anomaly Detector](docs/screenshots/traffic_anomaly_detector.png)
+![Traffic Anomaly Detector](docs/screenshots/traffic_anomaly_detector.PNG)
 
 교통 데이터를 5분 구간으로 분석하고 관측값을 기준선 및 상·하한과 비교하여 급증·급감 등 이상 후보를 표시하는 대시보드입니다.
 
@@ -476,7 +476,7 @@ Airflow, Spark, Kubernetes 및 데이터 적재 관련 실행 기록을 통합�
 
 ### 시간대·측정 지점별 교통 패턴 분석
 
-![Traffic Fingerprint](docs/screenshots/traffic_fingerprint.png)
+![Traffic Fingerprint](docs/screenshots/traffic_fingerprint.PNG)
 
 측정 날짜, 요일, 시간대, 측정 지점 및 차량 종류를 기반으로 교통 패턴의 특징을 비교하기 위해 구성한 대시보드입니다.
 

@@ -119,7 +119,7 @@ Power BI Dashboard
 
 ### 4.2 Airflow DAG 실행 결과
 
-![Airflow DAG 실행 성공](docs/screenshots/airflow.png)
+![Airflow DAG 실행 성공](docs/screenshots/airflow.PNG)
 
 **실제 검증 결과**
 

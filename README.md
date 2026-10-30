@@ -1,150 +1,352 @@
-# Kubernetes 기반 교통 데이터 배치 파이프라인
+# 🚦 Kubernetes 기반 교통 데이터 엔지니어링 파이프라인
 
-> Python · PostgreSQL · Apache Airflow · Apache Spark · Docker · Kubernetes · Power BI
+**End-to-End Batch Data Engineering Portfolio**
 
-## 프로젝트 소개
+`Python` · `PostgreSQL` · `Apache Airflow` · `Apache Spark` · `Docker` · `Kubernetes` · `Power BI`
 
-교통 측정 데이터를 PostgreSQL에 적재하고, Apache Airflow에서 Kubernetes 기반 Spark 작업을 실행해 날짜·수집 유형·차량 종류별로 집계하는 배치 데이터 엔지니어링 포트폴리오입니다. SQL 정합성 검증, 작업 실행 이력 관리, 성공한 작업의 중복 제출 방지까지 구현했습니다.
+## 1. 프로젝트 소개
 
-## 주요 검증 결과
+본 프로젝트는 교통 측정 데이터를 수집하고, PostgreSQL에 적재한 뒤 Apache Airflow와 Kubernetes 기반 Spark를 활용하여 배치 처리하는 데이터 엔지니어링 프로젝트입니다.
 
-| 항목 | 실제 확인 결과 |
-|---|---|
-| 원천 데이터 | 20,125건 |
-| 집계 결과 | 79개 그룹 |
-| 집계 차원 | `datum`, `source_type`, `kfz_klasse` |
-| 데이터 정합성 | 원천 그룹별 집계와 결과 테이블 일치 |
-| Airflow DAG | `traffic_kubernetes_pipeline` 수동 실행 2회 성공 (서로 다른 코드 버전) |
-| Kubernetes Spark Driver | `Succeeded` 확인 |
-| 실행 이력 | `spark_job_execution_log`에 `SUCCEEDED` 기록 확인 |
-| 중복 제출 방지 | 동일 Run ID의 재테스트에서 `ALREADY_SUCCEEDED` 반환, Driver 1개 유지 |
+단순한 데이터 분석 및 시각화를 넘어 **데이터 수집 → 적재 → 분산 처리 → 작업 오케스트레이션 → 데이터 품질 검증 → 실행 상태 관리**까지 이어지는 파이프라인을 직접 구현했습니다.
 
-*위 결과는 로컬 개발 환경에서 검증한 수치입니다. 처리 건수만으로 대규모 데이터 처리 성능을 입증하지는 않습니다.*
+### 프로젝트 핵심 목표
 
-## 시스템 아키텍처
-
-```text
-교통 측정 CSV
-    │
-    ▼
-Python 적재 / 증분 ETL
-    │
-    ▼
-PostgreSQL: traffic_raw
-    │
-    ▼
-Apache Airflow ──────┐
-    │                 │
-    ▼                 ▼
-Kubernetes API    PostgreSQL: spark_job_execution_log
-    │                 (Spark 실행 상태)
-    ▼
-Spark Driver + Executor
-    │
-    ▼
-그룹별 집계 및 UPSERT
-    │
-    ▼
-PostgreSQL: traffic_daily_summary
-    │
-    ├── SQL 정합성 검증
-    │
-    └── Power BI 분석 리포트
-```
-
-## 기술 스택
-
-| 영역 | 기술 및 역할 |
-|---|---|
-| 수집 및 적재 | Python, 증분 ETL |
-| 저장 및 검증 | PostgreSQL, SQL |
-| 작업 오케스트레이션 | Apache Airflow |
-| 데이터 집계 | Apache Spark |
-| 컨테이너 실행 | Docker |
-| Spark 실행 환경 | Kubernetes |
-| 데이터 시각화 | Power BI Desktop |
-
-## 주요 구현 내용
-
-### 1. 수집·적재 및 집계
-
-- Python 스크립트로 교통 측정 데이터를 PostgreSQL에 적재합니다.
-- Spark에서 측정 날짜(`datum`), 수집 유형(`source_type`), 차량 종류(`kfz_klasse`)를 기준으로 차량 수(`vehicle_count`)를 집계합니다.
-- UPSERT 방식으로 집계 결과를 갱신해 동일 그룹의 중복 행 생성을 방지하도록 구성했습니다.
-
-관련 코드: `scripts/load_csv.py`, `scripts/incremental_load.py`, `spark/write_summary.py`, `sql/merge_traffic_summary.sql`
-
-### 2. Airflow → Kubernetes → Spark 실행
-
-- Airflow DAG에서 Kubernetes API로 Spark 실행을 제출하고 Driver Pod의 완료 여부를 확인합니다.
-- 실행 결과는 PostgreSQL에 기록하며, Spark 처리 후 SQL 검증 작업을 수행합니다.
-
-관련 코드: `dags/traffic_kubernetes_pipeline.py`, `dags/traffic_k8s_client.py`
-
-### 3. 데이터 정합성 검증
-
-- `traffic_raw`의 그룹별 합계와 `traffic_daily_summary`를 비교합니다.
-- 집계 그룹 누락 및 차량 수 불일치를 검출하도록 구성했습니다.
-- 검증한 실행에서는 총 20,125건이 79개 그룹으로 집계되었고 불일치가 확인되지 않았습니다.
-
-### 4. 실행 이력 및 중복 제출 방지
-
-- PostgreSQL 테이블 `spark_job_execution_log`에 현재 상태를 저장합니다.
-- 설계한 상태값은 `PENDING`, `SUBMITTED`, `RUNNING`, `SUCCEEDED`, `FAILED`입니다.
-- 동일 Airflow Run ID에 `SUCCEEDED` 이력이 존재하면 Spark 작업을 재제출하지 않고 `ALREADY_SUCCEEDED`를 반환합니다.
-- 실제 재테스트에서 기존 성공 이력을 이용한 제출 생략을 확인했습니다.
-
-**구현 한계:** 상태 전환 이력 전체를 보관하지 않으며, 자동 재시도는 비활성화되어 있습니다. 모든 장애·동시 실행·Pod 유실 시나리오에 대한 복구 안정성을 검증한 것은 아닙니다.
-
-### 5. Power BI 분석 리포트
-
-- 전체 교통량 및 수집 유형별 KPI
-- 측정 날짜별 교통량 추이
-- 차량 종류별 분포
-- 날짜 슬라이서를 활용한 상호작용형 필터링
-
-**분석상 주의:** `TRACKING`과 `KONTROLLE`는 데이터 수집 범위가 동일한지 확인되지 않았으므로 단순 총량 차이를 AI 정확도나 측정 오차율로 해석하지 않습니다.
-
-## 주요 파일
-
-```text
-dags/
-  traffic_pipeline.py
-  traffic_kubernetes_pipeline.py
-  traffic_k8s_client.py
-scripts/
-  load_csv.py
-  incremental_load.py
-spark/
-  traffic_aggregation.py
-  write_summary.py
-  benchmark_synthetic.py
-sql/
-  merge_traffic_summary.sql
-README.md
-docker-compose.yml
-.env.example
-```
-
-테스트 및 보조 스크립트는 해당 폴더에 별도로 포함되어 있습니다. `docker-compose.yml`은 비밀번호 값을 환경변수로 참조하는 공개용 설정으로 포함했습니다. 다만 **Spark Dockerfile, JDBC 드라이버 JAR, SSH 키, Kubernetes 인증 파일 및 배포 매니페스트가 포함되지 않아 이 ZIP만으로 전체 환경을 즉시 실행할 수는 없습니다.** 해당 의존성은 개인 개발 환경별로 별도 구성해야 합니다.
-
-## 보안 및 데이터 공개 원칙
-
-`.env`, `k8s-auth/`, `ssh/`, 로컬 가상환경, Docker 이미지 아카이브 및 실제 원본 데이터는 기본적으로 GitHub 공개 대상에서 제외합니다. 공개 전 Docker Compose 및 전체 추적 파일에 인증 정보나 비공개 데이터가 없는지 추가 검토가 필요합니다. Power BI `.pbix`는 포함된 데이터의 공개 가능 여부를 검토한 뒤 공개 여부를 결정합니다.
-
-## 개선 계획
-
-- 실행 시간·성공률·처리량을 시각화하는 Pipeline Health Monitor
-- 원천 데이터·집계 데이터의 품질 지표를 결합한 Data Trust Score
-- 추가 데이터 확보 후 이상 탐지·분포 변화 분석
-- 장애 복구 및 동시 실행 테스트 확대
-- 재현 가능한 실행 가이드 및 아키텍처 다이어그램 보완
+- Python을 이용한 데이터 수집 및 증분 ETL 구축
+- PostgreSQL을 활용한 원천·집계 데이터 관리
+- Airflow DAG를 통한 배치 작업 오케스트레이션
+- Kubernetes 환경에서 Spark Driver·Executor 실행
+- SQL 기반 데이터 정합성 검증
+- 실행 이력 관리 및 성공한 Spark 작업의 중복 제출 방지
+- Power BI를 활용한 교통량 분석 및 시각화
 
 ---
 
-**프로젝트 목적:** 단순한 시각화가 아니라 수집 → 저장 → 분산 처리 → 오케스트레이션 → 품질 검증 → 운영 상태 확인으로 이어지는 데이터 엔지니어링 업무 흐름을 직접 구현하고 검증하는 것입니다.
+## 2. 핵심 구현 성과
 
+| 항목 | 검증 결과 |
+|---|---|
+| 원천 데이터 처리 | **20,125건** |
+| Spark 집계 결과 | **79개 그룹** |
+| 집계 기준 | 날짜 · 수집 유형 · 차량 종류 |
+| 데이터 정합성 | **불일치 0건** |
+| Airflow DAG | 수동 실행 2회 성공 |
+| Spark Driver | `Succeeded` |
+| Spark 실행 이력 | PostgreSQL에 `SUCCEEDED` 기록 |
+| 중복 제출 방지 | `ALREADY_SUCCEEDED` 반환 검증 |
+| 기존 Driver 유지 | 재테스트 후 Driver Pod 1개 확인 |
 
-## 공개용 코드 실행 시 주의사항
+> 위 결과는 개인 개발 환경에서 실제 실행을 통해 확인한 수치입니다. 데이터 처리 건수만으로 대규모 처리 성능을 입증하지는 않습니다.
 
-보안을 위해 예제 코드에서 데이터베이스 비밀번호의 고정 기본값을 제거했습니다. 실행하려면 `TRAFFIC_DB_PASSWORD` 환경변수를 별도로 설정해야 합니다. `.env.example`의 자리는 실제 환경에 맞게 채우되 `.env`는 커밋하지 마세요. 원래 로컬 환경에서 실행한 버전과 이 공개용 소스의 설정은 일부 다릅니다.
+---
+
+## 3. 시스템 아키텍처
+
+**전체 데이터 처리 흐름**
+
+```text
+Traffic CSV Data
+        |
+        v
+Python ETL
+        |
+        v
+PostgreSQL
+(traffic_raw)
+        |
+        v
+Apache Airflow DAG
+        |
+        +------> PostgreSQL
+        |        (spark_job_execution_log)
+        |
+        v
+Kubernetes API
+        |
+        v
+Spark Driver / Executor
+        |
+        v
+Spark Aggregation
+        |
+        v
+PostgreSQL
+(traffic_daily_summary)
+        |
+        +------> SQL Data Quality Validation
+        |
+        v
+Power BI Dashboard
+```
+
+### 기술별 역할
+
+| 기술 | 역할 |
+|---|---|
+| Python | 데이터 수집·정제·적재 |
+| PostgreSQL | 원천 데이터 및 집계 결과 저장 |
+| Airflow | 배치 작업 실행 및 의존성 관리 |
+| Spark | 교통량 데이터 집계 |
+| Kubernetes | Spark Driver·Executor 실행 환경 |
+| Docker | 컨테이너 기반 개발 환경 |
+| SQL | UPSERT 및 데이터 정합성 검증 |
+| Power BI | KPI 및 분석 대시보드 |
+
+---
+
+## 4. Airflow 배치 파이프라인 실행
+
+### 4.1 DAG 구조
+
+주요 DAG: `traffic_kubernetes_pipeline`
+
+파이프라인은 다음 두 작업으로 구성됩니다.
+
+**Task 1 — `submit_and_monitor_spark`**
+
+- Kubernetes API를 통해 Spark 작업 제출
+- 기존 Submitter 및 Driver Pod 확인
+- Spark Driver 실행 상태 모니터링
+- Spark 실행 결과 PostgreSQL에 기록
+- 성공한 작업의 중복 제출 방지
+
+**Task 2 — `validate_traffic_summary`**
+
+- 원천 데이터와 집계 데이터 비교
+- 누락된 집계 그룹 확인
+- 교통량 합계 불일치 검사
+- 검증 실패 시 Task 실패 처리
+
+### 4.2 Airflow DAG 실행 결과
+
+![Airflow DAG 실행 성공](docs/screenshots/airflow_dag_success.png)
+
+**실제 검증 결과**
+
+| 항목 | 결과 |
+|---|---|
+| DAG | `traffic_kubernetes_pipeline` |
+| DAG Run | `manual__2026-10-29T13:20:36.808524+00:00` |
+| `submit_and_monitor_spark` | Success |
+| `validate_traffic_summary` | Success |
+| 전체 실행 시간 | **37.673초** |
+| 각 Task 실행 시도 | 1회 |
+
+Spark 작업과 데이터 정합성 검증 작업이 모두 성공한 것을 확인했습니다.
+
+관련 코드: `dags/traffic_kubernetes_pipeline.py`
+
+---
+
+## 5. Spark 기반 데이터 집계
+
+Spark를 사용하여 PostgreSQL에 저장된 교통 데이터를 다음 기준으로 집계했습니다.
+
+- `datum`: 교통량 측정 날짜
+- `source_type`: 데이터 수집 유형
+- `kfz_klasse`: 차량 분류
+
+집계 결과는 `traffic_daily_summary`에 저장합니다.
+
+### 집계 결과
+
+| 지표 | 결과 |
+|---|---:|
+| 원천 데이터 | 20,125 |
+| 집계 그룹 | 79 |
+| 집계된 차량 수 합계 | 20,125 |
+| 검증된 불일치 | 0 |
+
+결과 저장 시 UPSERT 방식을 사용하여 동일한 집계 키에 대한 중복 행 생성을 방지하도록 설계했습니다.
+
+관련 코드:
+
+- `spark/traffic_aggregation.py`
+- `spark/write_summary.py`
+- `sql/merge_traffic_summary.sql`
+
+---
+
+## 6. Kubernetes 기반 Spark 실행
+
+Spark Standalone 실행 환경을 구성한 후 Kubernetes 기반 Spark 작업 실행으로 확장했습니다.
+
+### 주요 구현 내용
+
+- Kubernetes API를 통한 Spark 애플리케이션 제출
+- Spark Submitter Pod 생성 및 상태 확인
+- Spark Driver Pod 상태 모니터링
+- Kubernetes ServiceAccount 및 RBAC 활용
+- PostgreSQL Secret 참조 방식의 인증 정보 전달
+- 기존 실행 작업 확인 및 중복 제출 방지
+
+### 실행 상태 관리
+
+Spark 애플리케이션의 실행 상태를 PostgreSQL에 기록하도록 구성했습니다.
+
+상태값:
+
+`PENDING → SUBMITTED → RUNNING → SUCCEEDED / FAILED`
+
+`SUCCEEDED` 최종 상태의 저장과 조회를 실제로 검증했습니다. 다만 각 상태 전환의 전체 이벤트 이력을 별도로 저장하는 구조는 아닙니다.
+
+관련 코드:
+
+- `dags/traffic_k8s_client.py`
+- `dags/traffic_kubernetes_pipeline.py`
+
+---
+
+## 7. 실행 안정성 및 중복 제출 방지
+
+### 문제 정의
+
+Airflow 작업이 재실행되면 동일한 Spark 애플리케이션이 중복으로 제출될 가능성이 있습니다.
+
+데이터 파이프라인에서는 중복 실행으로 인해 불필요한 리소스 사용이나 데이터 처리 불일치가 발생할 수 있으므로 이를 방지할 필요가 있습니다.
+
+### 구현 방식
+
+1. Airflow Run ID를 기준으로 Spark Application 이름 생성
+2. PostgreSQL에 실행 이력 등록
+3. 이전 실행 상태 확인
+4. 이미 `SUCCEEDED`인 작업은 재제출하지 않음
+5. 기존 Kubernetes Pod 존재 여부 확인
+
+### 검증 결과
+
+동일한 Airflow Run ID로 Spark Task를 다시 테스트한 결과:
+
+```text
+Spark execution record: status=SUCCEEDED
+
+Spark execution already succeeded;
+skipping submission
+
+Returned:
+status=ALREADY_SUCCEEDED
+```
+
+재테스트 이후 기존 Spark Driver Pod가 1개로 유지되는 것을 확인했습니다.
+
+### 현재 한계
+
+- 자동 재시도는 비활성화되어 있습니다.
+- 모든 Kubernetes 장애 복구 시나리오를 검증하지는 않았습니다.
+- 동시 제출에 대한 완전한 원자적 제어는 추가 개선이 필요합니다.
+- Driver Pod 유실 시 복구 정책에 대한 추가 테스트가 필요합니다.
+
+---
+
+## 8. 데이터 품질 검증
+
+Spark 집계 이후 Airflow의 데이터 검증 Task를 실행합니다.
+
+검증 항목:
+
+- 원천 데이터와 집계 결과의 그룹 일치 여부
+- 누락된 집계 그룹 확인
+- 그룹별 차량 수 불일치 확인
+- 전체 교통량 합계 확인
+
+실제 검증에서 20,125건의 원천 데이터가 79개 그룹으로 집계되었으며, 불일치가 확인되지 않았습니다.
+
+---
+
+## 9. Power BI 교통량 분석
+
+집계된 데이터를 Power BI Desktop과 연결하여 분석 리포트를 구성했습니다.
+
+### 구현 기능
+
+- 전체 교통량 KPI
+- TRACKING 및 KONTROLLE 교통량 비교
+- 날짜별 교통량 추이
+- 차량 유형별 교통량 분포
+- 날짜 슬라이서 기반 동적 필터링
+
+참고로 TRACKING과 KONTROLLE 데이터는 동일한 측정 범위를 가진 데이터인지 확인되지 않았으므로, 두 총량의 차이를 직접적인 AI 측정 오차율로 해석하지 않았습니다.
+
+Power BI 원본 파일은 데이터 공개 가능 여부 검토 후 별도로 제공할 예정입니다.
+
+---
+
+## 10. 프로젝트 구조
+
+```text
+VE_Traffic/
+├── dags/
+│   ├── traffic_pipeline.py
+│   ├── traffic_kubernetes_pipeline.py
+│   ├── traffic_k8s_client.py
+│   └── ...
+├── scripts/
+│   ├── load_csv.py
+│   └── incremental_load.py
+├── spark/
+│   ├── traffic_aggregation.py
+│   ├── write_summary.py
+│   ├── benchmark_synthetic.py
+│   └── ...
+├── sql/
+│   └── merge_traffic_summary.sql
+├── docs/
+│   └── screenshots/
+│       └── airflow_dag_success.png
+├── docker-compose.yml
+├── .env.example
+├── .gitignore
+└── README.md
+```
+
+`docs/screenshots/`는 실행 증빙 이미지를 저장하기 위한 경로입니다.
+
+일부 Docker 이미지 빌드 파일, 드라이버 및 Kubernetes 인증·배포 설정은 공개 저장소에 포함되지 않았습니다. 따라서 현재 저장소만으로 전체 로컬 환경을 즉시 재현할 수는 없습니다.
+
+---
+
+## 11. 프로젝트에서 중점적으로 학습·구현한 내용
+
+**① End-to-End 데이터 파이프라인**
+
+Python 데이터 적재부터 Spark 집계, SQL 검증, Power BI 분석까지 하나의 데이터 흐름으로 연결했습니다.
+
+**② 배치 처리 및 분산 실행**
+
+Airflow를 통한 배치 작업 실행과 Kubernetes 환경의 Spark Driver·Executor 실행을 구현했습니다.
+
+**③ 데이터 정확성 검증**
+
+단순 집계 결과뿐 아니라 원천 데이터와의 정합성을 SQL로 검증하도록 구성했습니다.
+
+**④ 운영 관점의 설계**
+
+실행 상태 추적, 작업 재실행 판단 및 중복 제출 방지 로직을 추가했습니다.
+
+---
+
+## 12. 향후 개선 계획
+
+- Spark 처리 성능 벤치마크 확장
+- Airflow 반복 스케줄 및 운영 테스트
+- Kubernetes 장애·복구 시나리오 검증
+- Pipeline Health Monitor 구축
+- Data Trust Score 계산
+- 데이터 이상 탐지 및 분포 변화 감시
+- 자동 테스트 및 재현 가능한 배포 환경 정리
+
+---
+
+## 13. 보안 및 공개 범위
+
+실제 데이터베이스 비밀번호, Kubernetes 인증 토큰, SSH 개인 키 및 로컬 환경 설정 파일은 GitHub 공개 대상에서 제외했습니다.
+
+공개용 코드는 비밀번호를 환경변수로 참조하도록 정리했습니다. 공개용 코드와 실제 로컬 실행 환경에는 일부 설정 차이가 있으며, 별도 통합 실행 검증이 필요합니다.
+
+---
+
+## 프로젝트 요약
+
+본 프로젝트를 통해 **Python·SQL 기반 데이터 적재, Airflow 오케스트레이션, Kubernetes 기반 Spark 배치 실행, PostgreSQL 정합성 검증 및 실행 이력 관리**를 연결한 데이터 엔지니어링 파이프라인을 구축했습니다.
+
+단순히 여러 기술을 사용하는 데 그치지 않고, 실제 데이터 처리 결과를 검증하고 중복 작업 제출 문제를 해결하는 과정까지 구현한 개인 프로젝트입니다.

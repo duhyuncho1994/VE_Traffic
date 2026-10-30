@@ -292,7 +292,7 @@ VE_Traffic/
 │   └── merge_traffic_summary.sql
 ├── docs/
 │   └── screenshots/
-│       └── airflow_dag_success.png
+│       └── airflow.png
 ├── docker-compose.yml
 ├── .env.example
 ├── .gitignore

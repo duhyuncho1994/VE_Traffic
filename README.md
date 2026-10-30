@@ -156,7 +156,7 @@ validate_traffic_summary
 
 ### Airflow DAG 실행 성공
 
-![Airflow DAG Success](docs/screenshots/airflow_dag_success.png)
+![Airflow DAG Success](docs/screenshots/airflow.png)
 
 실제 DAG 실행에서 다음 두 Task가 모두 성공했습니다.
 
@@ -203,7 +203,7 @@ Spark 작업을 Kubernetes 환경에 제출하고 Driver·Executor를 사용하�
 
 ### Kubernetes 실행 결과
 
-![Kubernetes Spark Driver](docs/screenshots/kubernetes_spark_driver.png)
+![Kubernetes Spark Driver](docs/screenshots/k8s_spark_driver.png)
 
 실제 Kubernetes Pod 조회 결과:
 
@@ -564,16 +564,13 @@ VE_Traffic/
 |
 +-- docs/
 |   +-- screenshots/
-|       +-- airflow_dag_success.png
+|       +-- airflow.png
 |       +-- airflow_spark_execution_log.png
-|       +-- kubernetes_spark_driver.png
+|       +-- k8s_spark_driver.png
 |       +-- spark_batch_processing.png
 |       +-- postgresql_validation.png
 |       +-- postgresql_group_validation.png
 |       +-- spark_execution_history.png
-|       +-- pipeline_health_monitor.png
-|       +-- traffic_anomaly_detector.png
-|       +-- traffic_fingerprint.png
 |
 +-- docker-compose.yml
 +-- .env.example

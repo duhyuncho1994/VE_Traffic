@@ -397,7 +397,7 @@ Airflow Task 실행
 
 ### 데이터 파이프라인 운영 상태 모니터링
 
-![Pipeline Health Monitor](docs/screenshots/pipeline_health_monitor.PNG)
+![Pipeline Health Monitor](docs/screenshots/pipeline_monitor.PNG)
 
 Airflow, Spark, Kubernetes 및 데이터 적재 관련 실행 기록을 통합하여 파이프라인 운영 상태를 확인할 수 있도록 구성했습니다.
 
@@ -435,7 +435,7 @@ Airflow, Spark, Kubernetes 및 데이터 적재 관련 실행 기록을 통합�
 
 ### 교통량 이상 패턴 탐지
 
-![Traffic Anomaly Detector](docs/screenshots/traffic_anomaly_detector.PNG)
+![Traffic Anomaly Detector](docs/screenshots/traffic_detector.PNG)
 
 교통 데이터를 5분 구간으로 분석하고 관측값을 기준선 및 상·하한과 비교하여 급증·급감 등 이상 후보를 표시하는 대시보드입니다.
 

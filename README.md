@@ -225,43 +225,8 @@ Check Previous Execution
 
 **핵심 역량:** Data Pipeline Observability · Job Monitoring · Operational Analytics
 
-> 화면의 성공률은 수집된 실행 기록 기준이며, 개발·테스트 기록이 포함될 수 있습니다. 자동 알림·장애 복구 기능까지 구현한 것은 아닙니다.
+> 화면의 성공률은 수집된 실행 기록 기준입니다.
 
-### 5.2 Traffic Anomaly Detector
-
-![Traffic Anomaly Detector](docs/screenshots/Traffic_Detector.PNG)
-
-**목적:** 5분 단위 교통량을 기준선과 비교하여 급증·급감 등 이상 후보를 식별
-
-주요 기능:
-
-- 관측 교통량과 국소 기준선 비교
-- 상·하한 범위를 이용한 이상 후보 표시
-- 차량 종류별 이상 점수
-- Surge / Drop 구간 분석
-
-**핵심 역량:** Time-Series Analysis · Anomaly Detection · Data Quality Analytics
-
-> 관측 날짜가 6일로 제한되어 있어 장기 패턴 기반 예측 모델이 아닌 탐색적 이상 탐지입니다. 이상 후보 수의 KPI·상세 표 집계 기준은 최종 검증이 필요합니다.
-
-### 5.3 Traffic Fingerprint
-
-![Traffic Fingerprint](docs/screenshots/Traffic_Fingerprint.PNG)
-
-**목적:** 측정 지점·요일·시간대·차량 종류별 교통 패턴 비교
-
-주요 기능:
-
-- 요일 × 시간대 히트맵
-- 평일·주말 관측 패턴 비교
-- 측정 지점별 시간당 교통량
-- 차량 종류별 구성 분석
-
-**핵심 역량:** Data Aggregation · Feature Engineering · Pattern Analysis
-
-> 측정시간이 서로 다른 데이터의 비교를 위해 관측시간을 고려한 지표를 사용했습니다. 분석 결과는 실제 관측된 6일의 데이터 범위로 해석해야 합니다.
-
----
 
 ## 6. Source Code & Repository
 

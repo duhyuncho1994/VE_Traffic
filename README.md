@@ -208,9 +208,7 @@ Check Previous Execution
 
 ## 5. Power BI — Advanced Analytics
 
-데이터 파이프라인 구현 이후, **운영 모니터링과 데이터 이상·패턴 분석**을 위한 Power BI 대시보드 3개를 구성했습니다.
-
-### 5.1 Pipeline Health Monitor
+데이터 파이프라인 구현 이후, **운영 모니터링**을 시각화 하기 위한 Power BI 대시보드를 구성했습니다.
 
 ![Pipeline Health Monitor](docs/screenshots/Pipeline_Monitor.PNG)
 

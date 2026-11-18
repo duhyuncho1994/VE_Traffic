@@ -1,6 +1,6 @@
 # 🚦 Traffic Data Engineering Portfolio
 
-### End-to-End Batch Pipeline | Apache Airflow · Spark · Kubernetes · PostgreSQL
+### Batch Pipeline | Apache Airflow · Spark · Kubernetes · PostgreSQL
 
 **Tech Stack:** `Python` `SQL` `PostgreSQL` `Airflow` `Spark` `Kubernetes` `Docker` `Power BI`
 
@@ -30,7 +30,7 @@ Kubernetes에서 Spark 집계를 실행한 뒤 PostgreSQL 데이터 정합성을
 - `validate_traffic_summary`
 - 확인된 DAG 실행 소요시간: **37.7초**
 
-> 개인 개발 환경에서 실제 실행·검증한 결과입니다. Spark의 대규모 데이터 처리 성능이나 상시 운영 안정성을 입증하는 수치는 아닙니다.
+> 개인 개발 환경에서 실제 실행·검증한 결과입니다. 
 
 ---
 
@@ -245,22 +245,15 @@ Check Previous Execution
 ### Security & Reproducibility
 
 - 데이터베이스 비밀번호 및 인증정보는 공개 저장소에서 제외
-- 비공개 원천 데이터와 공개 승인되지 않은 파일은 제외
+- 공개 승인되지 않은 파일은 제외
 - Spark 이미지 빌드, JDBC 드라이버, Kubernetes 인증 및 배포 설정 등 별도 환경 구성이 필요
-- 공개용 코드 전체에 대한 End-to-End 재실행은 별도 검증 필요
+- 공개용 코드 전체에 대한 재실행은 별도 검증 필요
 
 현재 저장소는 **프로젝트 설계·핵심 구현 코드·실제 실행 증거를 보여주는 포트폴리오**이며, 완전히 자동화된 재현 환경은 아닙니다.
 
----
-
-## 7. Next Steps
-
-1. Airflow 자동 스케줄 및 Kubernetes 장애·복구 테스트
-2. Spark 데이터 규모별 처리 성능 벤치마크
-3. Kafka·Flink 기반 실시간 이상 이벤트 처리 프로젝트로 확장
 
 ---
 
-**Project Focus:** Batch Data Engineering · Distributed Processing · Data Reliability · Pipeline Observability
 
-*Personal Data Engineering Portfolio*
+
+
